@@ -1,6 +1,7 @@
 package com.barak.ball;
 
 import android.media.SoundPool;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
@@ -16,7 +17,7 @@ public class Ball {
     public static int countTouch = 0;
 
     public Ball(MainActivity mainActivity, int screenH, int screenW,
-                int size, int minSpeed, int maxSpeed, int rad_x,int rad_y){
+                int size, int minSpeed, int maxSpeed, int rad_x, int rad_y, View frame){
 
         image = new ImageView(mainActivity);
         this.screenH = screenH;
@@ -45,11 +46,19 @@ public class Ball {
         image.setY(y);
         this.xx = x + size/2;
         this.yy = y + size/2;
-        if (xx <= size/2 || xx >= screenW - size/2){
-            speedX = - speedX;
+        if (xx < size/2 ) {
+            speedX = Math.abs(speedX);
         }
-        if (yy <= size/2 || yy >= screenH - size/2)
-            speedY = - speedY;
+        if (xx > screenW - size/2){
+            speedX = -Math.abs(speedX);
+        }
+        if (yy < size/2 ){
+            speedY =  Math.abs(speedY);
+        }
+        if (yy > screenH - size/2 ){
+            speedY = - Math.abs(speedY);
+        }
+
 
 
 

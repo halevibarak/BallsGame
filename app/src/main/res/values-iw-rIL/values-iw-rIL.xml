@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">כדורים מתנגשים</string>
+
+    <string name="points">נקודות:</string>
+    <string name="screen">מסך:</string>
+    <string name="left">נותר:</string>
+    <string name="score_text">צברת %1d נקודות!</string>
+    <string name="submit">אישור</string>
+    <string name="start_title_">שיא חדש</string>
+</resources>

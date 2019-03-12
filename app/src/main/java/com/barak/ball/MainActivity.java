@@ -1,27 +1,39 @@
 package com.barak.ball;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final long TIME_MILI = 10000;
+    private static final String HIGH_SCORE = "HIGH_SCORE";
     private List<Ball> balls = null;
     private int START_BALLS = 10;
+    private int START_BALLS_ = 10;
     private int countBall = START_BALLS;
 
     private TextView textTimer, textScore, textLevel;
@@ -34,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
     private int mLevel = 0;
     private int mScroe;
     private int caliber;
-
+    private FrameLayout frame;
+    private AdView mAdView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,40 +62,30 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_main);
+        mAdView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+        frame = (FrameLayout)findViewById(R.id.frame);
+        ViewTreeObserver vto = frame.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+                   frame.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                } else {
+                    frame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
+                screenW  = frame.getMeasuredWidth();
+                screenH = frame.getMeasuredHeight();
+                createBalls();
 
+            }
+        });
         textTimer = findViewById(R.id.text_timer);
         textScore = findViewById(R.id.text_score);
         textLevel = findViewById(R.id.text_level);
-        textLevel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (timer == null) {
-                    timer = new MyTimer(30000, 100);
-                    timer.start();
-                } else {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-        });
-        textLevel.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View view) {
-                for (int i = balls.size() - 1; i > -1; i--) {
-//                    balls.get(i).image.setImageAlpha(0);
-                    ((ViewGroup) balls.get(i).image.getParent()).removeView(balls.get(i).image);
-                    balls.remove(i);
-                }
-                if (timer != null) timer.cancel();
-                timer = new MyTimer(60000, 10);
-                createBalls();
-                timer.start();
-
-                return false;
-            }
-        });
-        textScore.setText("נקודות:" + mScroe);
-        textLevel.setText("מסך:" + ++mLevel);
+        textScore.setText( getString(R.string.points) + mScroe);
+        textLevel.setText( getString(R.string.screen)+ ++mLevel);
         WindowManager windowManager =
                 (WindowManager)getSystemService(Context.WINDOW_SERVICE);
         final Display display = windowManager.getDefaultDisplay();
@@ -103,8 +106,7 @@ public class MainActivity extends AppCompatActivity {
         createSoundPool();
 
         balls = new ArrayList<>();
-        createBalls();
-        timer = new MyTimer(60000, 50);
+        timer = new MyTimer(TIME_MILI, 50);
         timer.start();
     }
 
@@ -119,27 +121,9 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < countBall; i++) {
             int rad_x = (int) (Math.random() * screenW * .85)+100;
             int rad_y = (int) (Math.random() * screenH * .85)+100;
-//            boolean checks = true;
-//            while (checks) {
-//                checks = false;
-//                for (int j = 0; j < balls.size(); j++) {
-//                    if (distance(rad_x,rad_y,balls.get(j).xx,balls.get(j).yy)<caliber){
-//                        checks=true;
-//                    }
-//                }
-//            }
-
             balls.add(new Ball(MainActivity.this, screenH, screenW, 200,
-                    10, 30,rad_x,rad_y));
+                    speed, speed * 3 ,rad_x,rad_y,frame));
         }
-
-//        balls.add(new Ball(MainActivity.this, screenH, screenW, 200,
-//                10, 20, 100, 100));
-//        balls.add(new Ball(MainActivity.this, screenH, screenW, 200,
-//                10, -10, 150, 150));
-//        balls.add(new Ball(MainActivity.this, screenH, screenW, 200,
-//                5, speed,1100,1000));
-
         caliber = balls.get(0).size;
     }
 
@@ -153,16 +137,17 @@ public class MainActivity extends AppCompatActivity {
                 boolean flag = Ball.touch(balls, x, y, soundPool, streamSoundTuck);
                 if (flag) {
                     --countBall;
-                    textScore.setText("נקודות:" + ++mScroe);
+                    textScore.setText( getString(R.string.points)+ ++mScroe);
                     if (countBall == 0) {
                         START_BALLS++;
                         countBall = START_BALLS;
                         mScroe += countBall;
                         mLevel++;
-                        textLevel.setText("מסך:" + mLevel);
-                        textScore.setText("נקודות:" + mScroe);
+                        speed++;
+                        textLevel.setText( getString(R.string.screen) + mLevel);
+                        textScore.setText( getString(R.string.points) + mScroe);
                         if (timer != null) timer.cancel();
-                        timer = new MyTimer(30000, 100);
+                        timer = new MyTimer(TIME_MILI, 100);
                         timer.start();
                         createBalls();
                     }
@@ -180,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onTick(long l) {
-            textTimer.setText(l / 1000 + "");
+            textTimer.setText( getString(R.string.left)+l / 1000 );
             moveBalls();
         }
 
@@ -188,7 +173,55 @@ public class MainActivity extends AppCompatActivity {
         public void onFinish() {
             timer.cancel();
             timer = null;
+            showPopUpFinish();
         }
+    }
+    private void showPopUpFinish() {
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        String dialogTitle = getString(R.string.app_name);
+        String dialogText;
+
+
+        dialogText = String.format(getString(R.string.score_text), mScroe);
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        int highScore = sp.getInt(HIGH_SCORE, 2);
+        if (mScroe > highScore) {
+            sp.edit().putInt(HIGH_SCORE, mScroe).apply();
+            dialogTitle = dialogTitle + " - " + getString(R.string.start_title_);
+            ImageView image = new ImageView(this);
+            image.setImageResource(R.drawable.right);
+            alert.setView(image);
+        } else if (mScroe == 0) {
+            dialogText = "";
+        }
+        alert.setTitle(dialogTitle).setMessage(dialogText)
+                .setOnDismissListener(dialogInterface -> {
+                    initTimer();
+                }).setNeutralButton(getString(R.string.submit), (dialogInterface, d) -> {
+            initTimer();
+        });
+        alert.show();
+    }
+
+    private void initTimer() {
+
+        if (timer != null) return;
+        for (int i = balls.size() - 1; i > -1; i--) {
+            ((ViewGroup) balls.get(i).image.getParent()).removeView(balls.get(i).image);
+            balls.remove(i);
+        }
+        START_BALLS = START_BALLS_;
+        countBall = START_BALLS;
+        mScroe = 0;
+        mLevel = 1;
+        speed = 10;
+        textLevel.setText( getString(R.string.screen) + mLevel);
+        textScore.setText( getString(R.string.points) + mScroe);
+        if (timer != null) timer.cancel();
+        timer = new MyTimer(TIME_MILI, 100);
+        timer.start();
+        createBalls();
     }
 
     private void moveBalls() {
